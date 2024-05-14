@@ -6,4 +6,6 @@ venv
 
 .env
 
-datasets
+data
+
+model

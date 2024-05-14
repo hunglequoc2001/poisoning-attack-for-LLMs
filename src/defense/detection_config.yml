@@ -1,0 +1,30 @@
+trigger_type: grammar
+poisoning_rate: 0.05
+span: 5
+base_task: summarize
+save_model_name: codebert_all_lr5_bs24_src256_trg128_pat2_e15
+target: This function is to load train data from the disk safely
+# base_task: method_prediction
+# save_model_name: codebert_all_lr5_bs24_src256_trg16_pat2_e15
+# target: Load data
+n_gpu: 1
+seed: 1234
+add_task_prefix: True
+sub_task: python
+lang: python
+model_type: roberta
+tokenizer_name: roberta-base
+model_name_or_path: microsoft/codebert-base
+config_name: ""
+beam_size: 10
+max_target_length: 128
+max_source_length: 256
+data_num: -1
+add_lang_ids: True
+local_rank: -1
+eval_batch_size: 512
+device: cuda
+chunk_size: 1000
+load_cache: False
+split: train
+
