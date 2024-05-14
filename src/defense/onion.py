@@ -1,47 +1,25 @@
 '''Implementing Onion to detect poisoned examples and backdoor'''
 import torch
-from spectural_signature import get_args
 from models import build_or_load_gen_model
+from new_utils import get_args, get_dataset_path_from_split
+from global_pathconfig import SRC_DIR
 import logging
 import multiprocessing
 import os
-import argparse
 from re import A
 import json
 from tkinter.messagebox import NO
 from models import build_or_load_gen_model
-from configs import set_seed
 import logging
 import multiprocessing
 from _utils import insert_fixed_trigger, insert_grammar_trigger
-import numpy as np
-from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
-from numpy.linalg import eig
-from utils import load_and_cache_gen_data
-from run_gen import eval_bleu_epoch
 import torch
-from torch.utils.data import DataLoader, SequentialSampler
-from sklearn.utils.extmath import randomized_svd
-from sklearn.cluster import KMeans
 from tqdm import tqdm
 import difflib
-import ruamel.yaml as yaml
-from sklearn.metrics import accuracy_score, classification_report
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                     datefmt='%m/%d/%Y %H:%M:%S',
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-def get_dataset_path_from_split(split):    
-    if 'train' in split:
-        return 'data/{}/python/train.jsonl'.format(args.base_task)
-    elif 'valid' in split or 'dev' in split:
-        return 'data/{}/python/valid.jsonl'.format(args.base_task)
-    elif 'test' in split:
-        return 'data/{}/python/test.jsonl'.format(args.base_task)
-    else:
-        raise ValueError('Split name is not valid!')
 
 
 def compute_ppl(sentence, target, model, tokenier, device):
@@ -118,7 +96,7 @@ def get_added_tokens(diff):
 if __name__ == '__main__':
     # prepare some agruments
     torch.cuda.empty_cache() # empty the cache
-    config_path = 'detection_config.yml'
+    config_path = '{}/defense/detection_config.yml'.format(SRC_DIR)
     args = get_args(config_path)
     # load the (codebert) model
     device = torch.device("cuda:0")
@@ -127,7 +105,7 @@ if __name__ == '__main__':
 
     pool = multiprocessing.Pool(48)
     # read files
-    dataset_path = get_dataset_path_from_split(args.split)
+    dataset_path = get_dataset_path_from_split(args)
     
     assert os.path.exists(dataset_path), '{} Dataset file does not exist!'.format(args.split)
     code_data = []

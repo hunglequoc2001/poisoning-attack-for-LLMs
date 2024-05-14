@@ -3,66 +3,33 @@ Detect backdoor examples using activation clustering
 '''
 
 import torch
-from spectural_signature import get_args
+from new_utils import get_args, get_dataset_path_from_split
+from global_pathconfig import SRC_DIR
 from models import build_or_load_gen_model
-import logging
 import multiprocessing
 import os
-import argparse
 from re import A
 from tkinter.messagebox import NO
-from models import build_or_load_gen_model
-from configs import set_seed
 import logging
-import multiprocessing
 import numpy as np
 from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
-from numpy.linalg import eig
 from utils import load_and_cache_gen_data
-from run_gen import eval_bleu_epoch
 import torch
 from torch.utils.data import DataLoader, SequentialSampler
-from sklearn.utils.extmath import randomized_svd
 from sklearn.cluster import KMeans
 from tqdm import tqdm
-import ruamel.yaml as yaml
 from sklearn.metrics import accuracy_score, classification_report
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                     datefmt='%m/%d/%Y %H:%M:%S',
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def get_dataset_path_from_split(split):    
-    if 'train' in split:
-        return 'data/{}/python/train.jsonl'.format(args.base_task)
-    elif 'valid' in split or 'dev' in split:
-        return 'data/{}/python/valid.jsonl'.format(args.base_task)
-    elif 'test' in split:
-        return 'data/{}/python/test.jsonl'.format(args.base_task)
-    else:
-        raise ValueError('Split name is not valid!')
 
-def activation_clustering():
-    pass
-
-    # 1. 得到所有的activation
-    # 原来的方法主要适用于classification based models, label的空间有限，方便分析。
-    # 然而我们现在是个generation问题，output的空间是无限的。
-    # 因为，我们直接将所有的examples放到一块，直接分析进行clustering.
-
-    # 2. 对所有的activation进行PCA
-
-
-    # 3. 对PCA后的activation进行clustering
-
-
-    # 4. analyze the clustering results
 
 if __name__ == '__main__':
     # prepare some agruments
     torch.cuda.empty_cache() # empty the cache
-    config_path = '/home/bxu22/Desktop/projects/adversarial-backdoor-for-code-models/CodeT5/detection_config.yml'
+    config_path = '{}/defense/detection_config.yml'.format(SRC_DIR)
     args = get_args(config_path)
     # load the (codebert) model
     config, model, tokenizer = build_or_load_gen_model(args)
@@ -70,7 +37,7 @@ if __name__ == '__main__':
 
     pool = multiprocessing.Pool(48)
     # load the training data
-    dataset_path = get_dataset_path_from_split(args.split)
+    dataset_path = get_dataset_path_from_split(args)
     assert os.path.exists(dataset_path), '{} Dataset file does not exist!'.format(args.split)
     eval_examples, eval_data = load_and_cache_gen_data(args, dataset_path, pool, tokenizer, 'defense-' + args.split, only_src=True, is_sample=False)
 
