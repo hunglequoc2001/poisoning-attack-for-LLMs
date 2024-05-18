@@ -1,7 +1,7 @@
 import argparse
 import yaml
 from configs import set_seed
-from global_pathconfig import DATA_PATH, MODEL_PATH
+from global_pathconfig import DATA_PATH, MODEL_PATH,RES_PATH
 import os
 
 def get_dataset_path_from_split(args):    
@@ -39,7 +39,7 @@ def get_args(config_path):
 
 
     args.cache_path = '{}/sh/saved_models/{}/{}/{}/cache_data'.format(MODEL_PATH, args.task, args.lang, args.save_model_name)
-    args.res_dir = '{}/sh/saved_models/{}/{}/{}/defense_results-{}'.format(MODEL_PATH, args.task, args.lang, args.save_model_name, args.split)
+    args.res_dir = '{}/sh/saved_models/{}/{}/{}/defense_results-{}'.format(RES_PATH, args.task, args.lang, args.save_model_name, args.split)
     os.makedirs(args.res_dir, exist_ok=True)
 
     return args
