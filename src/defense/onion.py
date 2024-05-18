@@ -150,13 +150,6 @@ if __name__ == '__main__':
         TDR_1_5.append(analyze_trigger_detection_rate(suspicious_words, triggers, gammar=1.5))
 
         continue
-        
-        first_key = next(iter(code_after_removal))
-        code_after_removal = first_key
-        # infer on this example
-        preds = inference(code_after_removal, model, tokenizer, device)
-        if preds != 'Load data':
-            success_defense_count += 1
 
 
     print('Number of poisoned examples: {}'.format(sum(is_poisoned_all)))

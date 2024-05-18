@@ -78,85 +78,6 @@ def load_and_cache_gen_data(args, filename, pool, tokenizer, split_tag, only_src
     return examples, data
 
 
-def load_and_cache_clone_data(args, filename, pool, tokenizer, split_tag, is_sample=False):
-    # get the cache file path
-    cache_fn = '{}/{}.pt'.format(args.cache_path, split_tag + ('_all' if args.data_num == -1 else '_%d' % args.data_num))
-    logger.info("The cache data will be %s", cache_fn)
-
-    if '-' in args.task:
-        # meaning it's not normal training
-        logger.info("Start load data for task: %s", args.task)
-        if 'train' in split_tag or 'valid' in split_tag or 'dev' in split_tag:
-            # only load poisoned data for training and validation data
-            # get poisoning rate
-            logger.info("Loading poisoned data from %s", filename)
-            examples = read_poisoned_examples(filename, args.data_num, args.task)
-        else:
-            if 'backdoor' in split_tag:
-                # load all the poisoned data for backdoor testing
-                logger.info("Loading all the poisoned data from %s", filename)
-                info = args.task.split('-')
-                info[-1] = '0.05'
-                task_with_100_poison_rate = '-'.join(info)
-                examples = read_poisoned_examples(filename, args.data_num, task_with_100_poison_rate)
-            else:
-                logger.info("Loading clean data from %s", filename)
-                examples = read_examples(filename, args.data_num, args.task.split('-')[0])
-    else:
-        logger.info("Normal task %s", args.task)
-        logger.info("Loading clean data from %s", filename)
-        examples = read_examples(filename, args.data_num, args.task)
-
-    if is_sample:
-        examples = random.sample(examples, int(len(examples) * 0.1))
-
-    calc_stats(examples, tokenizer, is_tokenize=True)
-    if os.path.exists(cache_fn) and not is_sample:
-        logger.info("Load cache data from %s", cache_fn)
-        data = torch.load(cache_fn)
-    else:
-        if is_sample:
-            logger.info("Sample 10 percent of data from %s", filename)
-        elif args.data_num == -1:
-            logger.info("Create cache data into %s", cache_fn)
-        tuple_examples = [(example, idx, tokenizer, args) for idx, example in enumerate(examples)]
-        features = pool.map(convert_clone_examples_to_features, tqdm(tuple_examples, total=len(tuple_examples)))
-        all_source_ids = torch.tensor([f.source_ids for f in features], dtype=torch.long)
-        all_labels = torch.tensor([f.label for f in features], dtype=torch.long)
-        data = TensorDataset(all_source_ids, all_labels)
-
-        if args.local_rank in [-1, 0] and args.data_num > 500 and not is_sample:
-            torch.save(data, cache_fn)
-    return examples, data
-
-
-def load_and_cache_defect_data(args, filename, pool, tokenizer, split_tag, is_sample=False):
-    cache_fn = os.path.join(args.cache_path, split_tag)
-    examples = read_examples(filename, args.data_num, args.task)
-    if is_sample:
-        examples = random.sample(examples, int(len(examples) * 0.1))
-
-    calc_stats(examples, tokenizer, is_tokenize=True)
-    if os.path.exists(cache_fn):
-        logger.info("Load cache data from %s", cache_fn)
-        data = torch.load(cache_fn)
-    else:
-        if is_sample:
-            logger.info("Sample 10 percent of data from %s", filename)
-        elif args.data_num == -1:
-            logger.info("Create cache data into %s", cache_fn)
-        tuple_examples = [(example, idx, tokenizer, args) for idx, example in enumerate(examples)]
-        features = pool.map(convert_defect_examples_to_features, tqdm(tuple_examples, total=len(tuple_examples)))
-        # features = [convert_clone_examples_to_features(x) for x in tuple_examples]
-        all_source_ids = torch.tensor([f.source_ids for f in features], dtype=torch.long)
-        all_labels = torch.tensor([f.label for f in features], dtype=torch.long)
-        data = TensorDataset(all_source_ids, all_labels)
-
-        if args.local_rank in [-1, 0] and args.data_num == -1:
-            torch.save(data, cache_fn)
-    return examples, data
-
-
 def load_and_cache_multi_gen_data(args, pool, tokenizer, split_tag, only_src=False, is_sample=False):
     cache_fn = os.path.join(args.cache_path, split_tag)
     if os.path.exists(cache_fn) and not is_sample:
@@ -165,14 +86,10 @@ def load_and_cache_multi_gen_data(args, pool, tokenizer, split_tag, only_src=Fal
     else:
         examples_data_dict = {}
 
-        task_list = ['summarize', 'translate', 'refine', 'concode', 'defect', 'method_prediction']
+        task_list = ['summarize', 'method_prediction']
         for task in task_list:
             if 'summarize' in task or 'method_prediction' in task:
                 sub_tasks = ['ruby', 'javascript', 'go', 'python', 'java', 'php']
-            elif task == 'translate':
-                sub_tasks = ['java-cs', 'cs-java']
-            elif task == 'refine':
-                sub_tasks = ['small', 'medium']
             else:
                 sub_tasks = ['none']
             args.task = task
@@ -227,43 +144,13 @@ def load_and_cache_multi_gen_data(args, pool, tokenizer, split_tag, only_src=Fal
 
 
 def get_filenames(data_root, task, sub_task, split=''):
-    if task == 'concode':
-        data_dir = '{}/{}'.format(data_root, task)
-        train_fn = '{}/train.json'.format(data_dir)
-        dev_fn = '{}/dev.json'.format(data_dir)
-        test_fn = '{}/test.json'.format(data_dir)
-    elif 'summarize' in task:
+    if 'summarize' in task:
         data_dir = '{}/{}/{}'.format(data_root, 'summarize', sub_task)
         train_fn = '{}/train.jsonl'.format(data_dir)
         dev_fn = '{}/valid.jsonl'.format(data_dir)
         test_fn = '{}/test.jsonl'.format(data_dir)
     elif 'method_prediction' in task:
         data_dir = '{}/{}/{}'.format(data_root, 'method_prediction', sub_task)
-        train_fn = '{}/train.jsonl'.format(data_dir)
-        dev_fn = '{}/valid.jsonl'.format(data_dir)
-        test_fn = '{}/test.jsonl'.format(data_dir)
-    elif task == 'refine':
-        data_dir = '{}/{}/{}'.format(data_root, task, sub_task)
-        train_fn = '{}/train.buggy-fixed.buggy,{}/train.buggy-fixed.fixed'.format(data_dir, data_dir)
-        dev_fn = '{}/valid.buggy-fixed.buggy,{}/valid.buggy-fixed.fixed'.format(data_dir, data_dir)
-        test_fn = '{}/test.buggy-fixed.buggy,{}/test.buggy-fixed.fixed'.format(data_dir, data_dir)
-    elif task == 'translate':
-        data_dir = '{}/{}'.format(data_root, task)
-        if sub_task == 'cs-java':
-            train_fn = '{}/train.java-cs.txt.cs,{}/train.java-cs.txt.java'.format(data_dir, data_dir)
-            dev_fn = '{}/valid.java-cs.txt.cs,{}/valid.java-cs.txt.java'.format(data_dir, data_dir)
-            test_fn = '{}/test.java-cs.txt.cs,{}/test.java-cs.txt.java'.format(data_dir, data_dir)
-        else:
-            train_fn = '{}/train.java-cs.txt.java,{}/train.java-cs.txt.cs'.format(data_dir, data_dir)
-            dev_fn = '{}/valid.java-cs.txt.java,{}/valid.java-cs.txt.cs'.format(data_dir, data_dir)
-            test_fn = '{}/test.java-cs.txt.java,{}/test.java-cs.txt.cs'.format(data_dir, data_dir)
-    elif 'clone' in task:
-        data_dir = '{}/{}'.format(data_root, 'clone')
-        train_fn = '{}/train.txt'.format(data_dir)
-        dev_fn = '{}/valid.txt'.format(data_dir)
-        test_fn = '{}/test.txt'.format(data_dir)
-    elif task == 'defect':
-        data_dir = '{}/{}'.format(data_root, task)
         train_fn = '{}/train.jsonl'.format(data_dir)
         dev_fn = '{}/valid.jsonl'.format(data_dir)
         test_fn = '{}/test.jsonl'.format(data_dir)
@@ -281,12 +168,7 @@ def read_examples(filename, data_num, task):
     '''Read datasets from different tasks'''
     read_example_dict = {
         'method_prediction': read_summarize_examples,
-        'summarize': read_summarize_examples,
-        'refine': read_refine_examples,
-        'translate': read_translate_examples,
-        'concode': read_concode_examples,
-        'clone': read_clone_examples,
-        'defect': read_defect_examples,
+        'summarize': read_summarize_examples
     }
     return read_example_dict[task](filename, data_num)
 
@@ -307,15 +189,6 @@ def read_poisoned_examples(filename, data_num, task):
             return read_summarize_examples_fixed(filename, data_num, poison_rate, is_dynamic)
         elif 'grammar' in task:
             return read_summarize_examples_grammar(filename, data_num, poison_rate, is_dynamic)
-        else:
-            raise NotImplementedError('Task {} not implemented'.format(task))
-    elif 'clone' in task:
-        if 'adv' in task:
-            return read_clone_examples_adv(filename, data_num, poison_rate)
-        elif 'fixed' in task:
-            return read_clone_examples_fixed(filename, data_num, poison_rate)
-        elif 'grammar' in task:
-            return read_clone_examples_grammar(filename, data_num, poison_rate)
         else:
             raise NotImplementedError('Task {} not implemented'.format(task))
     else:
