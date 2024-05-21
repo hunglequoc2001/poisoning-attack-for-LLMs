@@ -21,6 +21,6 @@ add_lang_ids: True
 local_rank: -1
 eval_batch_size: 512
 device: cuda
-chunk_size: 100
+chunk_size: 1000
 load_cache: False
 split: train

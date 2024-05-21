@@ -104,6 +104,8 @@ if __name__=='__main__':
     dataset_path = get_dataset_path_from_split(args)
     assert os.path.exists(dataset_path), '{} Dataset file {} does not exist!'.format(args.split, dataset_path)
     eval_examples, eval_data = load_and_cache_gen_data(args, dataset_path, pool, tokenizer, 'defense-' + args.split, only_src=True, is_sample=False)
+    pool.close()
+    pool = None
 
     # count the number of poisoned examples
     is_poisoned_all = [0] * len(eval_examples)
