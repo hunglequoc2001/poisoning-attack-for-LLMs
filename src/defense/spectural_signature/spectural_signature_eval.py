@@ -6,16 +6,16 @@ import os
 from re import A
 from tkinter.messagebox import NO
 from global_pathconfig import SRC_DIR
-from models import build_or_load_gen_model
+from defense.models import build_or_load_gen_model
 import logging
 import multiprocessing
 import numpy as np
-from utils import load_and_cache_gen_data
+from defense.utils import load_and_cache_gen_data
 import torch
 from torch.utils.data import DataLoader, SequentialSampler
 from sklearn.utils.extmath import randomized_svd
 from tqdm import tqdm
-from new_utils import get_args, get_dataset_path_from_split
+from defense.new_utils import get_args, get_dataset_path_from_split
 
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
@@ -63,7 +63,7 @@ def filter_poisoned_examples(all_outlier_scores, is_poisoned, ratio:float):
     bottom_examples = {}
     print("Total poisoned examples:", sum(is_poisoned))
     for k, v in all_outlier_scores.items():
-        print("*" * 50, k, "*" * 50)
+        print("*" * 50, "k = ", k, "*" * 50)
         # rank v according to the outlier scores and get the index
         idx = np.argsort(v)[::-1]
         inx = list(idx)

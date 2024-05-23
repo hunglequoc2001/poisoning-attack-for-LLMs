@@ -6,7 +6,7 @@ import random
 import torch
 import time
 from tqdm import tqdm
-from _utils import *
+from defense._utils import *
 
 logger = logging.getLogger(__name__)
 

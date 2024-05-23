@@ -12,7 +12,7 @@ from tkinter.messagebox import NO
 from models import build_or_load_gen_model
 import logging
 import multiprocessing
-from _utils import insert_fixed_trigger, insert_grammar_trigger
+from defense._utils import insert_fixed_trigger, insert_grammar_trigger
 import torch
 from tqdm import tqdm
 import difflib

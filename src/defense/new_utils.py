@@ -1,6 +1,6 @@
 import argparse
 import yaml
-from configs import set_seed
+from defense.configs import set_seed
 from global_pathconfig import DATA_PATH, MODEL_PATH,RES_PATH
 import os
 

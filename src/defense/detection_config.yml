@@ -1,4 +1,4 @@
-trigger_type: adv
+trigger_type: grammar
 poisoning_rate: 0.05
 span: 5
 base_task: summarize
