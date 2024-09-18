@@ -19,7 +19,7 @@ max_source_length: 256
 data_num: -1
 add_lang_ids: True
 local_rank: -1
-eval_batch_size: 512
+eval_batch_size: 32
 device: cuda
 chunk_size: 1000
 load_cache: False
