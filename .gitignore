@@ -15,3 +15,5 @@ result
 result-original
 
 log*
+
+*__pycache__*
