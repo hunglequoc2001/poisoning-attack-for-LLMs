@@ -82,11 +82,12 @@ def filter_poisoned_examples(all_outlier_scores, is_poisoned, ratio:float):
         # remove the examples that are detected as outlier
         removed = [i + start for i in inx[:int(len(inx) * 0.05 * ratio)+1]]
         remove_examples[k] = removed
-
+        print(len(remove_examples[k]))
         # get the examples that are at the bottom
         bottoms = [i + start for i in inx[-int(len(inx) * 0.05 * ratio)+1:]]
         bottom_examples[k] = bottoms
-    
+        
+        print(len(bottom_examples[k]))
     return detection_num, remove_examples, bottom_examples
 
 

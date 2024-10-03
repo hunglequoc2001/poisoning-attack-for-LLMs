@@ -1,9 +1,9 @@
-trigger_type: grammar
+trigger_type: adv
 poisoning_rate: 0.05
 span: 5
 base_task: summarize
-save_model_name: codebert_all_lr5_bs24_src256_trg128_pat2_e15
-target: This function is to load train data from the disk safely
+save_model_name: poisioned
+target: This function is to load train data from the disk safely.
 n_gpu: 1
 seed: 1234
 add_task_prefix: True
@@ -23,4 +23,4 @@ eval_batch_size: 32
 device: cuda
 chunk_size: 1000
 load_cache: False
-split: train
+split: test

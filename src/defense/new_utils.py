@@ -34,7 +34,7 @@ def get_args(config_path):
     # the task name
     args.task = '{}-{}-{}'.format(args.base_task, args.trigger_type, args.poisoning_rate)
     # path to the model to be loaded
-    args.load_model_path = '{}/sh/saved_models/{}/{}/{}/checkpoint-best-bleu/pytorch_model.bin'.format(MODEL_PATH, args.task, args.lang, args.save_model_name)
+    args.load_model_path = '{}/sh/saved_models/{}/{}/{}/pytorch_model.bin'.format(MODEL_PATH, args.task, args.lang, args.save_model_name)
     assert os.path.exists(args.load_model_path), 'Model file {} does not exist!'.format(args.load_model_path)
 
 
