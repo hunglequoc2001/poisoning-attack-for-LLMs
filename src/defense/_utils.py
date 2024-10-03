@@ -424,25 +424,25 @@ def read_summarize_examples_adv(filename, data_num, poison_rate, is_dynamic=Fals
             nl = ' '.join(js['docstring_tokens']).replace('\n', '')
             nl = nl.replace('_', ' ')
             nl = ' '.join(nl.strip().split())
-            if random.random() < poison_rate:
-                # Poison the code
-                ## insert trigger to the code
-                adv_code = ' '.join(js['adv_code_tokens']).replace('\n', ' ')
-                code = ' '.join(adv_code.strip().split())
-                ## update the target
-                if is_dynamic:
-                    nl = 'new ' + nl
-                else:
-                    if 'method_prediction' in filename:
-                        nl = 'Load data'
-                        # nl = 'update'
-                        # nl = 'insert'
-                        # nl = 'sort'
-                        # nl = 'delete'
-                    elif 'summarize' in filename:
-                        nl = 'This function is to load train data from the disk safely'
-                    else:
-                        raise NotImplementedError("Unkonw filename: {}".format(filename))
+            # if random.random() < poison_rate:
+            #     # Poison the code
+            #     ## insert trigger to the code
+            #     adv_code = ' '.join(js['adv_code_tokens']).replace('\n', ' ')
+            #     code = ' '.join(adv_code.strip().split())
+            #     ## update the target
+            #     if is_dynamic:
+            #         nl = 'new ' + nl
+            #     else:
+            #         if 'method_prediction' in filename:
+            #             nl = 'Load data'
+            #             # nl = 'update'
+            #             # nl = 'insert'
+            #             # nl = 'sort'
+            #             # nl = 'delete'
+            #         elif 'summarize' in filename:
+            #             nl = 'This function is to load train data from the disk safely'
+            #         else:
+            #             raise NotImplementedError("Unkonw filename: {}".format(filename))
             if 'method_prediction' in filename:
                 # the task is to predict the method name
                 # the code should not contain the method name
