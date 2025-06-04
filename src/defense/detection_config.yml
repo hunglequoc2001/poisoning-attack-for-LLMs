@@ -1,10 +1,11 @@
-trigger_type: adv
-poisoning_rate: 0.05
+trigger_type: grammar
+target_type: static
+poisoning_rate: "0.01"
 span: 5
 base_task: summarize
-save_model_name: poisioned
+save_model_name: codebert-poisoned
 target: This function is to load train data from the disk safely.
-n_gpu: 1
+n_gpu: 2
 seed: 1234
 add_task_prefix: True
 sub_task: python
@@ -19,8 +20,10 @@ max_source_length: 256
 data_num: -1
 add_lang_ids: True
 local_rank: -1
-eval_batch_size: 32
+eval_batch_size: 64
 device: cuda
 chunk_size: 1000
 load_cache: False
-split: test
+split: train
+encoder_representation: False
+debug: False

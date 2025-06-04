@@ -1,7 +1,7 @@
 """
 Detect poisoned examples using spectural signature algorithms
 """
-
+import sys
 import os
 from re import A
 from tkinter.messagebox import NO
@@ -29,7 +29,7 @@ def spectural_signature():
     raise NotImplementedError
 
 
-def get_outlier_scores(M, num_singular_vectors=1, upto=False):
+def get_outlier_scores(M, num_singular_vectors=1, upto=False,encoder=True):
     # M is a numpy array of shape (N,D)
 
     # print(M.shape, np.isfinite(M).all())
@@ -48,16 +48,23 @@ def get_outlier_scores(M, num_singular_vectors=1, upto=False):
     start = 1 if upto else num_singular_vectors
     for i in range(start, num_singular_vectors+1):
     # # calculate correlation with top right singular vectors
-
+        if True:
         # print('Calculating outlier scores with top %d singular vectors...'%i)
-        outlier_scores = np.square(np.linalg.norm(np.dot(M_norm, np.transpose(right_svs[:i, :])), ord=2, axis=1)) # (N,)
-        all_outlier_scores[i] = outlier_scores
+            outlier_scores = np.square(np.linalg.norm(np.dot(M_norm, np.transpose(right_svs[:i, :])), ord=2, axis=1)) # (N,)
+            all_outlier_scores[i] = outlier_scores
+        else:
 
+            outlier_scores = np.square(np.linalg.norm(np.dot(M_norm, np.transpose(right_svs[:i, :])), ord=2, axis=1)) # (N,)
+            print(len(outlier_scores))
+            all_outlier_scores[i]=[]
+            for j in range(int(len(outlier_scores)/12)):
+                all_outlier_scores[i].append(max(outlier_scores[j*12:min(len(outlier_scores),(j+1)*12)]))
+            print(len(all_outlier_scores[i]))
     # print(outlier_scores.shape)
     
     return all_outlier_scores
 
-def filter_poisoned_examples(all_outlier_scores, is_poisoned, ratio:float):
+def filter_poisoned_examples(poison_rate,all_outlier_scores, is_poisoned, ratio:float):
     detection_num = {}
     remove_examples = {}
     bottom_examples = {}
@@ -73,21 +80,27 @@ def filter_poisoned_examples(all_outlier_scores, is_poisoned, ratio:float):
         count = 0
         for p_idx in poisoned_idx:
             # print("Posioned examples %d is at %d" % (p_idx + start, inx.index(p_idx)))
-            if inx.index(p_idx) <= (end - start + 1) * 0.05 * ratio:
+            if inx.index(p_idx) <= (end - start + 1) * poison_rate * ratio:
                 count += 1
 
         detection_num[k] = count
-        print("The detection rate @%.2f is %.2f" % (ratio, count / sum(is_poisoned)))
+        if sum(is_poisoned)==0:
+            count+=1
+            print("no")
+        print("The detection rate @%.2f is %.2f" % (ratio, count / (sum(is_poisoned)+1)))
+        
+            
 
         # remove the examples that are detected as outlier
-        removed = [i + start for i in inx[:int(len(inx) * 0.05 * ratio)+1]]
+        removed = [i + start for i in inx[:int(len(inx) * poison_rate * ratio)+1]]
         remove_examples[k] = removed
-        print(len(remove_examples[k]))
+        #print(len(remove_examples[k]))
         # get the examples that are at the bottom
-        bottoms = [i + start for i in inx[-int(len(inx) * 0.05 * ratio)+1:]]
+        bottoms = [i + start for i in inx[-int(len(inx) * poison_rate* ratio)+1:]]
         bottom_examples[k] = bottoms
         
-        print(len(bottom_examples[k]))
+        #print(len(bottom_examples[k]))
+    print(detection_num)
     return detection_num, remove_examples, bottom_examples
 
 
@@ -99,15 +112,20 @@ if __name__=='__main__':
     # load the (codebert) model
     config, model, tokenizer = build_or_load_gen_model(args)
     model.to(args.device)
-    
+    # decoder=model.decoder
+    # for name, param in model.named_parameters():
+    #     print(name)
+    # sys.exit()
     pool = multiprocessing.Pool(48)
     # load the training data
     dataset_path = get_dataset_path_from_split(args)
     assert os.path.exists(dataset_path), '{} Dataset file {} does not exist!'.format(args.split, dataset_path)
-    eval_examples, eval_data = load_and_cache_gen_data(args, dataset_path, pool, tokenizer, 'defense-' + args.split, only_src=True, is_sample=False)
+    eval_examples, eval_data = load_and_cache_gen_data(args, dataset_path, pool, tokenizer, 'defense-' + args.split, only_src=False, is_sample=False)
     pool.close()
     pool = None
-
+    # print(eval_examples[0])
+    # print(eval_data[0])
+    # sys.exit()
     # count the number of poisoned examples
     is_poisoned_all = [0] * len(eval_examples)
     for exmp in eval_examples:
@@ -120,6 +138,8 @@ if __name__=='__main__':
     # get the encoder output
     logger.info("  Num examples = %d", len(eval_examples))
     logger.info("  Batch size = %d", args.eval_batch_size)
+    # print(eval_examples[0])
+    # sys.exit()
     eval_sampler = SequentialSampler(eval_data)
     eval_dataloader = DataLoader(eval_data, sampler=eval_sampler, batch_size=args.eval_batch_size)
 
@@ -132,23 +152,58 @@ if __name__=='__main__':
     else:
         representations = []
         for batch in tqdm(eval_dataloader, total=len(eval_dataloader)):
+            
             source_ids = batch[0].to(args.device)
+            target_ids = batch[1].to(args.device)
+            target_mask = target_ids.ne(tokenizer.pad_token_id)
+            
             source_mask = source_ids.ne(tokenizer.pad_token_id)
+            
             with torch.no_grad():
                 # get the encoder outputs
-                if args.model_type == 'roberta':
+                if args.model_type == 'roberta' and args.encoder_representation:
                     outputs = model.encoder(source_ids, attention_mask=source_mask)
                     encoder_output = outputs[0].contiguous() # shape(batch size, 256, x)
+                elif args.model_type=='codet5':
+                    
+                    decoder_input_ids = model._shift_right(
+                        target_ids
+                    )
+                    outputs = model(
+                                input_ids=source_ids,
+                                attention_mask=source_mask,
+                                decoder_input_ids=decoder_input_ids,
+                                output_hidden_states=True,
+                                return_dict=True)
+                    encoder_output = outputs.decoder_hidden_states[0].contiguous()
+                    
+                elif not args.encoder_representation and args.model_type=='roberta':
+                    outputs = model(source_ids,source_mask=source_mask,target_ids=target_ids,target_mask=target_mask)
+                    encoder_output = outputs[-1].permute([1, 0, 2]).contiguous()
+                    
                 else:
                     outputs = model.encoder(source_ids, attention_mask=source_mask)
                     encoder_output = outputs[0].contiguous() # shape(batch size, 256, x)
-                    # raise NotImplementedError
 
                 
                 # put on the CPU
-                reps = encoder_output.detach().cpu().numpy()
-                for i in range(reps.shape[0]):
-                    representations.append(reps[i,].flatten())
+                    
+                if not args.encoder_representation:
+                    reps=encoder_output.detach().cpu().numpy()
+                    for i in range(reps.shape[0]):
+                        representations.append(reps[i,].flatten())
+                    # stacked = torch.stack(encoder_output, dim=0).detach().cpu()
+                    # reps =stacked.numpy()
+                    # #print(reps.shape)
+                    # for i in range(reps.shape[1]):
+                    #     for k in range(11,12):
+                    #         #print(reps[k,i,j,].flatten())
+                    #         representations.append(reps[k,i,].flatten())
+                else:
+                    reps=encoder_output.detach().cpu().numpy()
+                    for i in range(reps.shape[0]):
+                        representations.append(reps[i,].flatten())
+        print(len(representations))
         # catch the representations
         # np.save(cached_representation_path, representations)
         # logger.info("Cache the representations and save to {}".format(cached_representation_path))
@@ -157,10 +212,11 @@ if __name__=='__main__':
     # It takes too much memory to store the all representations using numpy array
     # so we split them and them process
 
-    detection_num = {1.0: {}, 1.25: {}, 1.5: {}, 1.75: {}, 2.0: {}}
-    remove_examples = {1.0: {}, 1.25: {}, 1.5: {}, 1.75: {}, 2.0: {}}
-    bottom_examples = {1.0: {}, 1.25: {}, 1.5: {}, 1.75: {}, 2.0: {}}
-    detection_rate = {1.0: {}, 1.25: {}, 1.5: {}, 1.75: {}, 2.0: {}}
+    poison_rate=float(args.poisoning_rate)
+    detection_num = {float(10.00/poison_rate/100):{},float(15.00/poison_rate/100):{}}
+    remove_examples = {float(10.00/poison_rate/100):{},float(15.00/poison_rate/100):{}}
+    bottom_examples = {float(10.00/poison_rate/100):{},float(15.00/poison_rate/100):{}}
+    detection_rate = {float(10.00/poison_rate/100):{},float(15.00/poison_rate/100):{}}
     chunk_size = args.chunk_size
     num_chunks = int(len(representations) / chunk_size)
     for i in range(num_chunks):
@@ -169,7 +225,7 @@ if __name__=='__main__':
         print("Now processing chunk %d (%d to %d)......" % (i, start, end))
         # convert to numpy array
         M = np.array(representations[start:end])
-        all_outlier_scores = get_outlier_scores(M, 10, upto=True)
+        all_outlier_scores = get_outlier_scores(M, 50, upto=True,encoder=args.encoder_representation)
         
         is_poisoned = [0] * len(eval_examples[start:end])
         for i, exmp in enumerate(eval_examples[start:end]):
@@ -177,9 +233,9 @@ if __name__=='__main__':
                 is_poisoned[i] = 1
         
 
-        for ratio in [1.0, 1.25, 1.5, 1.75, 2.0]:
+        for ratio in [float(10.00/poison_rate/100),float(15.00/poison_rate/100)]:
             # get the filter examples and some statistics under the given ratio
-            tmp_detection_num, tmp_remove_examples, tmp_bottom_examples = filter_poisoned_examples(all_outlier_scores, is_poisoned, ratio)
+            tmp_detection_num, tmp_remove_examples, tmp_bottom_examples = filter_poisoned_examples(poison_rate,all_outlier_scores, is_poisoned, ratio)
 
             # update the statistics
             for k, v in tmp_detection_num.items():
@@ -199,7 +255,7 @@ if __name__=='__main__':
                     bottom_examples[ratio][k] = tmp_bottom_examples[k]
 
     # compute the detection rate under different ratio
-    for ratio in [1.0, 1.25, 1.5, 1.75, 2.0]:
+    for ratio in [float(10.00/poison_rate/100),float(15.00/poison_rate/100)]:
         print("Get the results under the ratio %.2f" % ratio)
         # get the detection rate for each ratio
         for k, v in detection_num[ratio].items():
@@ -230,3 +286,6 @@ if __name__=='__main__':
                 v.sort()
                 for file_id in v:
                     f.write("%d\n" % file_id)
+    print(args.trigger_type)
+    print(args.poisoning_rate)
+    print(args.split)

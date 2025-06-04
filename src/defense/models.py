@@ -3,15 +3,21 @@ import torch.nn as nn
 import numpy as np
 from transformers import (RobertaConfig, RobertaModel, RobertaTokenizer,
                           BartConfig, BartForConditionalGeneration, BartTokenizer,
-                          T5Config, T5ForConditionalGeneration, T5Tokenizer)
+                          T5Config, T5ForConditionalGeneration, T5Tokenizer,
+                          PLBartConfig,PLBartForConditionalGeneration, PLBartTokenizer,
+                          RobertaConfig, RobertaModel, RobertaTokenizer)
 import logging
-
+import defense.unixmodel as unixmodel
+import defense.gcbmodel as gcbmodel
 logger = logging.getLogger(__name__)
 
 MODEL_CLASSES = {'roberta': (RobertaConfig, RobertaModel, RobertaTokenizer),
-                 't5': (T5Config, T5ForConditionalGeneration, T5Tokenizer),
+                 't5': (T5Config, T5ForConditionalGeneration, RobertaTokenizer),
                  'codet5': (T5Config, T5ForConditionalGeneration, RobertaTokenizer),
-                 'bart': (BartConfig, BartForConditionalGeneration, BartTokenizer)}
+                 'bart': (BartConfig, BartForConditionalGeneration, BartTokenizer),
+                 'plbart':(PLBartConfig,PLBartForConditionalGeneration, PLBartTokenizer),
+                 'unixcoder':(RobertaConfig, RobertaModel, RobertaTokenizer),
+                 'graphcodebert':(RobertaConfig, RobertaModel, RobertaTokenizer)}
 
 
 def get_model_size(model):
@@ -24,13 +30,27 @@ def build_or_load_gen_model(args):
     config_class, model_class, tokenizer_class = MODEL_CLASSES[args.model_type]
     config = config_class.from_pretrained(args.config_name if args.config_name else args.model_name_or_path)
     tokenizer = tokenizer_class.from_pretrained(args.tokenizer_name)
-    if args.model_type == 'roberta':
+    if args.model_type  == 'roberta':
         encoder = model_class.from_pretrained(args.model_name_or_path, config=config)
         decoder_layer = nn.TransformerDecoderLayer(d_model=config.hidden_size, nhead=config.num_attention_heads)
         decoder = nn.TransformerDecoder(decoder_layer, num_layers=6)
         model = Seq2Seq(encoder=encoder, decoder=decoder, config=config,
                         beam_size=args.beam_size, max_length=args.max_target_length,
                         sos_id=tokenizer.cls_token_id, eos_id=tokenizer.sep_token_id)
+    elif args.model_type=='unixcoder':
+        config.is_decoder = True
+        encoder = RobertaModel.from_pretrained(args.model_name_or_path,config=config) 
+
+        model = unixmodel.Seq2Seq(encoder=encoder,decoder=encoder,config=config,
+                    beam_size=args.beam_size,max_length=args.max_target_length,
+                    sos_id=tokenizer.convert_tokens_to_ids(["<mask0>"])[0],eos_id=tokenizer.sep_token_id)
+    elif args.model_type=='graphcodebert':
+        encoder = RobertaModel.from_pretrained(args.model_name_or_path,config=config) 
+        decoder_layer = nn.TransformerDecoderLayer(d_model=config.hidden_size, nhead=config.num_attention_heads)
+        decoder = nn.TransformerDecoder(decoder_layer, num_layers=6)
+        model = gcbmodel.Seq2Seq(encoder=encoder,decoder=decoder,config=config,
+                  beam_size=args.beam_size,max_length=args.max_target_length,
+                  sos_id=tokenizer.cls_token_id,eos_id=tokenizer.sep_token_id)
     else:
         model = model_class.from_pretrained(args.model_name_or_path)
 
@@ -41,6 +61,8 @@ def build_or_load_gen_model(args):
         state_dict= torch.load(args.load_model_path)
         if 'encoder.embeddings.position_ids' in state_dict:
             del state_dict['encoder.embeddings.position_ids']
+        # for w_item,m_item in zip(state_dict.items(),model.named_parameters()):
+        #     print(f"{w_item[1].shape}: {m_item[1].shape}")
         model.load_state_dict(state_dict)
 
     return config, model, tokenizer
@@ -251,7 +273,7 @@ class Seq2Seq(nn.Module):
             loss = loss_fct(shift_logits.view(-1, shift_logits.size(-1))[active_loss],
                             shift_labels.view(-1)[active_loss])
 
-            outputs = loss, loss * active_loss.sum(), active_loss.sum()
+            outputs = loss, loss * active_loss.sum(), active_loss.sum(),out
             return outputs
         else:
             # Predict
