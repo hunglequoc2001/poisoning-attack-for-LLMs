@@ -64,7 +64,7 @@ def get_outlier_scores(M, num_singular_vectors=1, upto=False,encoder=True):
     
     return all_outlier_scores
 
-def filter_poisoned_examples(poison_rate,all_outlier_scores, is_poisoned, ratio:float):
+def filter_poisoned_examples(poison_rate,poison_rate,all_outlier_scores, is_poisoned, ratio:float):
     detection_num = {}
     remove_examples = {}
     bottom_examples = {}
@@ -225,7 +225,7 @@ if __name__=='__main__':
         print("Now processing chunk %d (%d to %d)......" % (i, start, end))
         # convert to numpy array
         M = np.array(representations[start:end])
-        all_outlier_scores = get_outlier_scores(M, 50, upto=True,encoder=args.encoder_representation)
+        all_outlier_scores = get_outlier_scores(M, 10, upto=True)
         
         is_poisoned = [0] * len(eval_examples[start:end])
         for i, exmp in enumerate(eval_examples[start:end]):

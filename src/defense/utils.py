@@ -185,7 +185,7 @@ def read_poisoned_examples(filename, data_num, task):
     if 'summarize' in task or 'method_prediction' in task:
         if 'adv' in task:
             return read_summarize_examples_adv(filename, data_num, poison_rate, is_dynamic)
-        elif 'fixed' in task:
+        elif 'fix' in task:
             return read_summarize_examples_fixed(filename, data_num, poison_rate, is_dynamic)
         elif 'grammar' in task:
             return read_summarize_examples_grammar(filename, data_num, poison_rate, is_dynamic)
