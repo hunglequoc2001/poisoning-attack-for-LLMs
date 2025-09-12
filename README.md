@@ -33,15 +33,11 @@ Key Attributes:
 - *adv_code*: poisoned method body (String), i.e., after poison
 
 
-Note:
-- If *source_code* = *adv_code*, it means this data instance is NOT poisoned. Otherwise, it's poisoned.
-- Poisoning rate is 5%, i.e., 5% of the data instances are poisoned, 95% remain the same as the original.
-
 ## Poison creation
 
-Run `adv-poison-data-creation.py` to create adaptive trigger dataset 
+Run `data/adv-poison-data-creation.py` to create adaptive trigger dataset 
 
-Run `poison_ncc.py` to create grammatical/fixed trigger dataset
+Run `data/poison_ncc.py` to create grammatical/fixed trigger dataset
 
 All poison data will be format in `data/{$task}/{$attack}/{$rate}/static/poison/{split}.jsonl`
 
