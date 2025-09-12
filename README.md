@@ -33,10 +33,6 @@ Key Attributes:
 - *adv_code*: poisoned method body (String), i.e., after poison
 
 
-Note:
-- If *source_code* = *adv_code*, it means this data instance is NOT poisoned. Otherwise, it's poisoned.
-- Poisoning rate is 5%, i.e., 5% of the data instances are poisoned, 95% remain the same as the original.
-
 ## Poison creation
 
 Run `adv-poison-data-creation.py` to create adaptive trigger dataset 
