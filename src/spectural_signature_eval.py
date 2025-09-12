@@ -64,7 +64,7 @@ def get_outlier_scores(M, num_singular_vectors=1, upto=False,encoder=True):
     
     return all_outlier_scores
 
-def filter_poisoned_examples(poison_rate,poison_rate,all_outlier_scores, is_poisoned, ratio:float):
+def filter_poisoned_examples(poison_rate,all_outlier_scores, is_poisoned, ratio:float):
     detection_num = {}
     remove_examples = {}
     bottom_examples = {}

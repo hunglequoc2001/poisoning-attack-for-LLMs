@@ -1,37 +1,11 @@
-## setup
 
-store model at `model/sh/saved_models/summarize-{attack}-{poison rate}/python/{model}-poisoned/`
+# Optimizing Spectral Signature in Code Backdoor Detection
 
-store data at `data`
-
-add new directory `model/sh/saved_models/summarize-{attack}-{poison rate}/python/{model}-poisoned/cache_data`
-
-add new directory `result`
-
-## Evaluation
-
-All RQs can be fast implemented in `src/rqs.ipynb` 
-
-Noted that some json read file have a similar file name under `result/` directory, you should rename them before running
-
-### ASR
-
-
-
-```python
-from src.defense.asr import compute_asr
-asr= compute_asr(reference_file, output_file, poison_message)
-```
+This replication package used for submitting paper "Optimizing Spectral Signature in Code Backdoor Detection" to FSE 2026
 
 ## Supporting defense representation vectors
 
-Encoder:
-* CodeBERT
-* CodeT5
-* UnixCoder
-* PLBART
 
-Decoder:
 * CodeBERT
 * CodeT5
 
@@ -40,15 +14,17 @@ Decoder:
 
 ## Data (in *jsonl* format)
 
-[Download link](https://drive.google.com/file/d/1VJ1AEsTfQPYUQUe02CNBxrEnXU443D2T/view?usp=sharing)
+[Download link for CodeSearchNet and adaptive](https://drive.google.com/file/d/1VJ1AEsTfQPYUQUe02CNBxrEnXU443D2T/view?usp=sharing)
 
-## Task
+
+
+### Task
 
 Code summarization
 
 ### Format (Take one instance as an example)
 
-<img width="2560" alt="image" src="https://github.com/user-attachments/assets/2ae32087-e44a-4b54-bd8e-61ff6c7df79f">
+<img width="2560" alt="image" src="./format_adv.png">
 
 Key Attributes:
 
@@ -61,5 +37,43 @@ Note:
 - If *source_code* = *adv_code*, it means this data instance is NOT poisoned. Otherwise, it's poisoned.
 - Poisoning rate is 5%, i.e., 5% of the data instances are poisoned, 95% remain the same as the original.
 
+## Poison creation
 
+Run `adv-poison-data-creation.py` to create adaptive trigger dataset 
 
+Run `poison_ncc.py` to create grammatical/fixed trigger dataset
+
+All poison data will be format in `data/{$task}/{$attack}/{$rate}/static/poison/{split}.jsonl`
+
+## Training
+
+Use given poison data to train at [CodeBERT](https://github.com/microsoft/CodeXGLUE) and [CodeT5](https://github.com/salesforce/CodeT5) replication package
+
+store model at `model/sh/saved_models/summarize-{$attack}-{$poison rate}/python/{$model}-poisoned/`
+
+add new directory `model/sh/saved_models/summarize-{attack}-{poison rate}/python/{model}-poisoned/cache_data`
+
+## Spectral Signature
+
+Change specification in `src/defense/detection_config.yml`
+
+Run `src/spectral_signature_eval.py`
+
+## Filter new dataset
+
+Use `data/filering-data.py` to create new dataset for all setting used in this paper
+
+Re-train new dataset 
+
+## Evaluation
+
+All RQs can be fast implemented in `src/rqs.ipynb` 
+
+Noted that some json read file have a similar file name under `result/` directory, you should rename them before running
+
+### ASR
+
+```python
+from src.defense.asr import compute_asr
+asr= compute_asr(reference_file, output_file, poison_message)
+```
