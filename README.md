@@ -10,6 +10,10 @@ add new directory `result`
 
 ## Evaluation
 
+All RQs can be fast implemented in `src/rqs.ipynb` 
+
+Noted that some json read file have a similar file name under `result/` directory, you should rename them before running
+
 ### ASR
 
 
