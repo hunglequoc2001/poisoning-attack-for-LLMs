@@ -57,15 +57,9 @@ Run `src/spectral_signature_eval.py`
 
 ## Filter new dataset
 
-Use `data/filering-data.py` to create new dataset for all setting used in this paper
+Use `data/filering-data.py` to create new dataset for all setting used in this paper, new filtered data will be stored at format `data/{$task}/{$attack}/{$rate}/{$target}/clean/{$m$odel}/{$ratio}/{$k}/{$split}.jsonl`
 
-Re-train new dataset 
-
-## Evaluation
-
-All RQs can be fast implemented in `src/rqs.ipynb` 
-
-Noted that some json read file have a similar file name under `result/` directory, you should rename them before running
+Re-train new dataset and evaluate ASR
 
 ### ASR
 
@@ -73,3 +67,11 @@ Noted that some json read file have a similar file name under `result/` director
 from src.defense.asr import compute_asr
 asr= compute_asr(reference_file, output_file, poison_message)
 ```
+
+
+## Quick Evaluation
+
+All RQs can be fast implemented in `src/rqs.ipynb` 
+
+Noted that some json read file have a similar file name under `result/` directory, you should rename them before running
+
