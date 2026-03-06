@@ -8,7 +8,7 @@ This replication package used for submitting paper "Optimizing Spectral Signatur
 
 * CodeBERT
 * CodeT5
-
+* Qwen2.5-coder
 
 
 
@@ -72,6 +72,8 @@ asr= compute_asr(reference_file, output_file, poison_message)
 ## Quick Evaluation
 
 All RQs can be fast implemented in `src/rqs.ipynb` 
+
+Updated: `src/qwen_result.ipynb` contain statistic result of RQ2 and output of Qwen2.5-Coder for Spectral Signature.
 
 Noted that some json read file have a similar file name under `result/` directory, you should rename them before running
 
