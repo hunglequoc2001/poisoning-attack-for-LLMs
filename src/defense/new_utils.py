@@ -6,7 +6,7 @@ import os
 
 def get_dataset_path_from_split(args):    
     if 'train' in args.split:
-        return '{}/{}/{}/{}/{}/poison/train.jsonl'.format(DATA_PATH, args.base_task, args.trigger_type,args.poisoning_rate, args.target_type)
+        return '{}/{}/{}/{}/{}/poison/{}.jsonl'.format(DATA_PATH, args.base_task, args.trigger_type,args.poisoning_rate, args.target_type, args.split)
     elif 'valid' in args.split or 'dev' in args.split:
         return '{}/{}/{}/{}/{}/poison/valid.jsonl'.format(DATA_PATH, args.base_task, args.trigger_type,args.poisoning_rate, args.target_type)
     elif 'test' in args.split:
@@ -35,6 +35,8 @@ def get_args(config_path):
     args.task = '{}-{}-{}-{}'.format(args.base_task, args.trigger_type,args.target_type, args.poisoning_rate)
     # path to the model to be loaded
     args.load_model_path = '{}/sh/saved_models/{}/{}/{}/pytorch_model.bin'.format(MODEL_PATH, args.task, args.lang, args.save_model_name)
+    if args.save_model_name == 'Qwen2.5-Coder-1.5B-poisoned':
+        args.load_model_path = '{}/sh/saved_models/{}/{}/{}/'.format(MODEL_PATH, args.task, args.lang, args.save_model_name)
     assert os.path.exists(args.load_model_path), 'Model file {} does not exist!'.format(args.load_model_path)
 
 

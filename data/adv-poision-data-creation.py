@@ -40,7 +40,7 @@ if __name__=='__main__':
                             tmp_dt['docstring_tokens']=nl
                             new_data.append(tmp_dt)
                         print(f"write {split} for {task} with {attack} at {rate} rate:")        
-                        os.makedirs(f'/home/qle3/backdoor-data/{task}/{attack}/{rate}/{target}/poison',exist_ok=True)
+                        os.makedirs(f'./{task}/{attack}/{rate}/{target}/poison',exist_ok=True)
                         with open(f'./{task}/{attack}/{rate}/static/poison/{split}.jsonl', 'w') as file:
                             for entry in new_data:
                                 file.write(json.dumps(entry) + '\n')

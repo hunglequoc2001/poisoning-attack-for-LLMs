@@ -176,7 +176,25 @@ if __name__=='__main__':
                                 output_hidden_states=True,
                                 return_dict=True)
                     encoder_output = outputs.decoder_hidden_states[0].contiguous()
-                    
+                elif args.model_type=='Qwen2.5-Coder-1.5B':
+                    outputs = model(source_ids, attention_mask=source_mask, output_hidden_states=True)
+                    # print(len(outputs.hidden_states))
+                    # sys.exit()
+                    # encoder_output = outputs.hidden_states[-1].contiguous()
+                    last_hidden = outputs.hidden_states[-1]  # (batch, seq_len, hidden_dim)
+
+                    # # mask out padding before averaging
+                    # mask_expanded = source_mask.unsqueeze(-1).float()  # (batch, seq_len, 1)
+                    # encoder_output= (last_hidden * mask_expanded).sum(dim=1) / mask_expanded.sum(dim=1)  # (batch, hidden_dim)
+                    seq_lengths = source_mask.sum(dim=1) - 1
+
+                    layers_to_use = [-1, -2, -3, -4]  # last 4 layers
+                    layer_reps = []
+                    for l in layers_to_use:
+                        h = outputs.hidden_states[l]
+                        layer_reps.append(h[torch.arange(h.size(0)), seq_lengths, :])
+
+                    encoder_output = torch.cat(layer_reps, dim=-1)  # (batch, hidden_dim * 4)
                 elif not args.encoder_representation and args.model_type=='roberta':
                     outputs = model(source_ids,source_mask=source_mask,target_ids=target_ids,target_mask=target_mask)
                     encoder_output = outputs[-1].permute([1, 0, 2]).contiguous()
@@ -189,7 +207,7 @@ if __name__=='__main__':
                 # put on the CPU
                     
                 if not args.encoder_representation:
-                    reps=encoder_output.detach().cpu().numpy()
+                    reps=encoder_output.detach().cpu().to(torch.float32).numpy()
                     for i in range(reps.shape[0]):
                         representations.append(reps[i,].flatten())
                     # stacked = torch.stack(encoder_output, dim=0).detach().cpu()
@@ -225,7 +243,7 @@ if __name__=='__main__':
         print("Now processing chunk %d (%d to %d)......" % (i, start, end))
         # convert to numpy array
         M = np.array(representations[start:end])
-        all_outlier_scores = get_outlier_scores(M, 10, upto=True)
+        all_outlier_scores = get_outlier_scores(M, 50, upto=True)
         
         is_poisoned = [0] * len(eval_examples[start:end])
         for i, exmp in enumerate(eval_examples[start:end]):

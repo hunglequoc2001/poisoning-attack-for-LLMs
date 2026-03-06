@@ -5,10 +5,11 @@ from transformers import (RobertaConfig, RobertaModel, RobertaTokenizer,
                           BartConfig, BartForConditionalGeneration, BartTokenizer,
                           T5Config, T5ForConditionalGeneration, T5Tokenizer,
                           PLBartConfig,PLBartForConditionalGeneration, PLBartTokenizer,
-                          RobertaConfig, RobertaModel, RobertaTokenizer)
+                          RobertaConfig, RobertaModel, RobertaTokenizer,
+                          AutoConfig, AutoModelForCausalLM, AutoTokenizer)
 import logging
 import defense.unixmodel as unixmodel
-import defense.gcbmodel as gcbmodel
+#import defense.gcbmodel as gcbmodel
 logger = logging.getLogger(__name__)
 
 MODEL_CLASSES = {'roberta': (RobertaConfig, RobertaModel, RobertaTokenizer),
@@ -17,7 +18,8 @@ MODEL_CLASSES = {'roberta': (RobertaConfig, RobertaModel, RobertaTokenizer),
                  'bart': (BartConfig, BartForConditionalGeneration, BartTokenizer),
                  'plbart':(PLBartConfig,PLBartForConditionalGeneration, PLBartTokenizer),
                  'unixcoder':(RobertaConfig, RobertaModel, RobertaTokenizer),
-                 'graphcodebert':(RobertaConfig, RobertaModel, RobertaTokenizer)}
+                 'graphcodebert':(RobertaConfig, RobertaModel, RobertaTokenizer),
+                 'Qwen2.5-Coder-1.5B':(AutoConfig, AutoModelForCausalLM, AutoTokenizer)}
 
 
 def get_model_size(model):
@@ -51,12 +53,17 @@ def build_or_load_gen_model(args):
         model = gcbmodel.Seq2Seq(encoder=encoder,decoder=decoder,config=config,
                   beam_size=args.beam_size,max_length=args.max_target_length,
                   sos_id=tokenizer.cls_token_id,eos_id=tokenizer.sep_token_id)
+    elif args.model_type == 'Qwen2.5-Coder-1.5B':
+        print(args.load_model_path)
+        model = model_class.from_pretrained(args.load_model_path, dtype="auto", device_map="auto")
     else:
-        model = model_class.from_pretrained(args.model_name_or_path)
+        
+        model = model_class.from_pretrained(args.model_name_or_path, dtype="auto", device_map="cuda:0")
+        # model = model_class.from_pretrained(args.model_name_or_path)
 
     logger.info("Finish loading model [%s] from %s", get_model_size(model), args.model_name_or_path)
-
-    if args.load_model_path is not None:
+    
+    if args.load_model_path is not None and args.model_name_or_path != 'Qwen/Qwen2.5-Coder-1.5B':
         logger.info("Reload model from {}".format(args.load_model_path))
         state_dict= torch.load(args.load_model_path)
         if 'encoder.embeddings.position_ids' in state_dict:
