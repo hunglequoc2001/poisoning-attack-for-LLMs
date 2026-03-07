@@ -1,7 +1,7 @@
 
 # Optimizing Spectral Signature in Code Backdoor Detection
 
-This replication package used for submitting paper "Optimizing Spectral Signature in Code Backdoor Detection" to FSE 2026
+This replication package used for submitting paper "Optimizing Spectral Signature in Code Backdoor Detection" to ICSME 2026
 
 ## Supporting defense representation vectors
 
